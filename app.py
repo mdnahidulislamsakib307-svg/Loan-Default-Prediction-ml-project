@@ -208,7 +208,73 @@ print(f'{classification_report(y_pred,y_test,zero_division=0)}')
 jb.dump(model,'RandomForestClassifier.pkl')
 
 
-# In[93]:
+# In[104]:
+
+
+import joblib
+import pandas as pd
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+# -----------------------------
+# Input Schema
+# -----------------------------
+class LoanData(BaseModel):
+    age: int
+    income: float
+    loan_amount: float
+    loan_term_months: int
+    credit_score: int
+    employment_years: int
+    debt_to_income_ratio: float
+    num_credit_lines: int
+    past_delinquencies: int
+    credit_score_range: str
+    dti_rounded: float
+
+# -----------------------------
+# Load Model
+# -----------------------------
+model = joblib.load("RandomForestClassifier.pkl")
+
+# -----------------------------
+# FastAPI App
+# -----------------------------
+app = FastAPI(
+    title="Loan Default Prediction API",
+    description="ML API for predicting loan default risk",
+    version="1.0"
+)
+
+# -----------------------------
+# Home Route
+# -----------------------------
+@app.get("/")
+def home():
+    return {"message": "Loan Default Prediction API is running"}
+
+# -----------------------------
+# Prediction Route
+# -----------------------------
+@app.post("/predict")
+def predict(data: LoanData):
+
+    df = pd.DataFrame([data.dict()])
+
+    prediction = model.predict(df)[0]
+
+    if prediction == 1:
+        result = "High Risk - Customer may Default"
+    else:
+        result = "Low Risk - Customer likely to Repay"
+
+    return {
+        "prediction": int(prediction),
+        "result": result
+    }
+
+
+# In[106]:
 
 
 load = jb.load('RandomForestClassifier.pkl')
